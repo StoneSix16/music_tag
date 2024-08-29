@@ -1,19 +1,18 @@
 from sqlalchemy.orm import Session
-from .models import MediaFile
-from . import schemas
+import uuid
+from . import schemas, models
 
-def get_media_file(db: Session, title: str):
-    return db.query(MediaFile).filter(MediaFile.title == title).first()
+def get_album_by_name(db: Session, name: str):
+    return db.query(models.Album).filter(models.Album.name == name).first()
 
-def create_media_file(db: Session, media_file: schemas.MediaFileCreate):
-    db_media_file = MediaFile(title=media_file.title,
-                              path=media_file.path,
-                              id=media_file.id,
-                              tag='None')
-    db.add(db_media_file)
+def create_album(db: Session, album: schemas.AlbumCreate):
+    db_Album = models.Album
+    new_album = db_Album(name=album.name,
+                             tag='H')
+    db.add(new_album)
     db.commit()
-    db.refresh(db_media_file)
-    return db_media_file
+    db.refresh(new_album)
+    return new_album
 
 # NOTE :
 # - add that instance object to your database session.

@@ -1,6 +1,5 @@
-from sqlalchemy import Boolean, Integer, String, ForeignKey, Column
-from sqlalchemy.orm import relationship
-
+from sqlalchemy import Integer, Enum, Float, Uuid, DateTime, String, Text, ForeignKey, Column
+import uuid, enum
 from .database import Base
 
 # class Tag(Base):
@@ -17,124 +16,159 @@ from .database import Base
 #     name = Column(String)
 #     artist = Column(String)
 
-class MediaFile(Base):
-    __tablename__ = "media_file"
+# class MediaFile(Base):
+#     __tablename__ = "media_file"
     
-    id = Column(String(255), primary_key=True)
-    title = Column(String(50))
+#     id = Column(String(255), primary_key=True)
+#     title = Column(String(50))
+#     path = Column(String(255))
+#     tag = Column(String(255))
+
+class TagTypeEnum(enum.Enum):
+    fixied = 0
+    customized = 1
+
+class PathTypeEnum(enum.Enum):
+    folder = 0
+    music = 1
+    image = 2
+    lyric = 3
+
+class Album(Base):
+    __tablename__ = "album"
+
+    id = Column(Uuid, default=uuid.uuid4, primary_key=True)
+    name = Column(String(255), index=True)
+    artist = Column(ForeignKey("artist.name"), nullable=True, default='未知', index=True)
+    song_count = Column(Integer, default=-1, nullable=False)
+    genre = Column(ForeignKey("tag.name"), nullable=True)
+    tag = Column(ForeignKey("tag.name"), nullable=True)
+
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    accessed_at = Column(DateTime)
+
+    comment = Column(Text, default='', nullable=True)
+    description = Column(Text, default='', nullable=True)
+    cover = Column(ForeignKey("cover.id"), nullable=True)
+    # musicbrainz fields
+    mbz_album_id = Column(String(255), nullable=True)
+    mbz_album_artist_id = Column(String(255), nullable=True)
+    mbz_album_type = Column(String(255), nullable=True)
+    mbz_album_comment = Column(String(255), nullable=True)
+
+    external_url = Column(String(255), default='', nullable=True)
+    external_info_updated_at = Column(DateTime)
+
+class Track(Base):
+    __tablename__ = "track"
+
+    id = Column(ForeignKey("folder.id"), primary_key=True, comment="folder id")
+    name = Column(String(255), index=True)
+    artist = Column(String(50), nullable=True, default='未知', index=True)
+    genre = Column(ForeignKey("tag.name"), nullable=True)
+    tag = Column(ForeignKey("tag.name"), nullable=True)
+
     path = Column(String(255))
-    tag = Column(String(255))
+    size = Column(Integer, default=0, nullable=True, comment="歌曲大小/Byte")
+    mimetype = Column(String(255), default='', nullable=True)
+    duration = Column(Float, default=0, nullable=False, comment="歌曲时长/s")
+    bit_rate = Column(Integer, default=0, nullable=True)
 
-# class Album(Base):
-#     __tablename__ = "album"
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    accessed_at = Column(DateTime)
 
-#     id = Column('uuid', Uuid)
-#     name = Column('专辑名称', String(255), )
-#     artist = models.ForeignKey('Artist', on_delete=models.SET_NULL, null=True, related_name='albums',
-#                                db_constraint=False)
-#     all_artist_ids = ListTextField(base_field=models.IntegerField(), default=list)
+    comment = Column(Text, default='', nullable=True)
+    description = Column(Text, default='', nullable=True)
+    cover = Column(ForeignKey("cover.id"), nullable=True)
+    lyric = Column(ForeignKey("lyric.id"), nullable=True)
+    
 
-#     max_year = models.IntegerField(default=0, null=False)
-#     song_count = models.IntegerField("歌曲统计", default=-1, null=False)
-#     plays_count = models.IntegerField("播放次数", default=0, null=False)
-#     duration = models.FloatField("歌曲时长s", default=0, null=False)
-#     genre = models.ForeignKey('Genre', on_delete=models.SET_NULL, null=True, related_name='albums', db_constraint=False)
-#     created_at = models.DateTimeField(null=True)
-#     updated_at = models.DateTimeField(null=True, auto_now=True)
-#     accessed_date = models.DateTimeField("访问时间", null=True)
+    # musicbrainz fields
+    mbz_track_id = Column(String(255), nullable=True)
+    mbz_album_id = Column(String(255), nullable=True)
+    mbz_artist_id = Column(String(255), nullable=True)
+    mbz_album_artist_id = Column(String(255), nullable=True)
+    mbz_album_type = Column(String(255), nullable=True)
+    mbz_album_comment = Column(String(255), nullable=True)
 
-#     full_text = models.CharField(max_length=255, default='', null=True, blank=True)
-#     size = models.IntegerField("文件大小", default=0, null=False)
-#     comment = models.CharField(max_length=255, null=True)
-#     paths = models.CharField(max_length=255, null=True)
-#     description = models.CharField(max_length=255, default='', null=True)
-#     attachment_cover = models.ForeignKey('Attachment', on_delete=models.SET_NULL, null=True, related_name='album_cover',
-#                                          db_constraint=False)
+    external_url = Column(String(255), default='', nullable=True)
+    external_info_updated_at = Column(DateTime)
 
-#     # musicbrainz fields
-#     mbz_album_id = models.CharField(max_length=255, null=True)
-#     mbz_album_artist_id = models.CharField(max_length=255, null=True)
-#     mbz_album_type = models.CharField(max_length=255, null=True)
-#     mbz_album_comment = models.CharField(max_length=255, null=True)
+class Artist(Base):
+    __tablename__ = "artist"
 
-#     external_url = models.CharField(max_length=255, default='', null=True)
-#     external_info_updated_at = models.DateTimeField(null=True)
+    id = Column(Uuid, default=uuid.uuid4, primary_key=True)
+    name = Column(String(255), index=True)
+    song_count = Column(Integer, default=0, nullable=False)
+    genre = Column(ForeignKey("tag.name"), nullable=True)
+    tag = Column(ForeignKey("tag.name"), nullable=True)
 
-#     class Meta:
-#         verbose_name = "专辑"
-#         verbose_name_plural = "专辑"
+    comment = Column(Text, default='', nullable=True)
+    cover = Column(ForeignKey("cover.id"), nullable=True)
 
-#     def __str__(self):
-#         return self.name
+    # musicbrainz fields
+    mbz_artist_id = Column(String(255), nullable=True)
 
-
-# class Track(models.Model):
-#     name = models.CharField(default='', max_length=255)
-
-#     path = models.CharField(default='', max_length=255)
-#     album = models.ForeignKey('Album', on_delete=models.SET_NULL, null=True, related_name='tracks', db_constraint=False)
-#     artist = models.ForeignKey('Artist', on_delete=models.SET_NULL, null=True, related_name='tracks',
-#                                db_constraint=False)
-#     has_cover_art = models.BooleanField(default=False)
-#     track_number = models.IntegerField(default=0)
-#     disc_number = models.IntegerField(default=0)
-#     plays_count = models.IntegerField("播放量", default=0, null=True)
-#     year = models.IntegerField(default=0, null=True)
-#     size = models.IntegerField("文件大小", default=0, null=False)
-#     suffix = models.CharField("后缀", default='', max_length=255, null=True)
-#     mimetype = models.CharField(default='', max_length=255, null=True)
-#     duration = models.FloatField("歌曲时长s", default=0, null=False)
-#     bit_rate = models.IntegerField(default=0, null=True)
-#     genre = models.ForeignKey('Genre', on_delete=models.SET_NULL, null=True, related_name='tracks', db_constraint=False)
-#     created_at = models.DateTimeField(null=True, auto_now_add=True)
-#     updated_at = models.DateTimeField(null=True, auto_now=True)
-#     accessed_date = models.DateTimeField("访问时间", null=True)
-#     full_text = models.CharField(default='', max_length=255, null=True, blank=True)
-#     comment = models.TextField(null=True)
-#     lyrics = models.TextField(null=True)
-#     # musicbrainz fields
-#     mbz_track_id = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_album_id = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_artist_id = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_album_artist_id = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_album_type = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_album_comment = models.CharField(default='', max_length=255, null=True, blank=True)
-#     mbz_release_track_id = models.CharField(default='', max_length=255, null=True, blank=True)
-
-#     class Meta:
-#         verbose_name = "歌曲"
-#         verbose_name_plural = "歌曲"
-
-#     def __str__(self):
-#         return self.name
+    external_url = Column(String(255), default='', nullable=True)
+    external_info_updated_at = Column(DateTime)
 
 
-# class Artist(models.Model):
-#     name = models.CharField(max_length=255, default='', blank=False)
-#     album_count = models.IntegerField(default=0)
-#     full_text = models.CharField(max_length=255, default='', null=True, blank=True)
+class Tag(Base):
+    __tablename__ = "tag"
 
-#     song_count = models.IntegerField(default=0, null=True, blank=True)
-#     size = models.IntegerField(default=0, null=True, blank=True)
-#     mbz_artist_id = models.CharField(max_length=255, null=True, blank=True)
-#     attachment_cover = models.ForeignKey('Attachment', null=True, blank=True, on_delete=models.SET_NULL,
-#                                          related_name='artist_cover')
+    name = Column(String(255), unique=True, primary_key=True)
+    song_count = Column(Integer, default=0, nullable=False)
+    tag_type = Column(Enum(TagTypeEnum), comment="标签类型")
 
-#     similar_artists = models.CharField(max_length=255, default='', null=True, blank=True)
-#     external_url = models.CharField(max_length=255, default='', null=True, blank=True)
-#     external_info_updated_at = models.DateTimeField(null=True, blank=True)
+class Cover(Base):
+    __tablename__ = "cover"
 
-#     class Meta:
-#         verbose_name = "艺术家"
-#         verbose_name_plural = "艺术家"
+    id = Column(ForeignKey("folder.id"), primary_key=True, comment="folder id")
+    path = Column(String(255))
 
-#     def __str__(self):
-#         return self.name
+    # Remote URL where the image can be fetched
+    url = Column(Text, nullable=True)
+    size = Column(Integer, default=0, nullable=True, comment="文件大小/Byte")
+    mimetype = Column(String(255), default='', nullable=True)
 
+    created_at = Column(DateTime)
+    accessed_at = Column(DateTime)
 
-# class Genre(models.Model):
-#     name = models.CharField(max_length=255, unique=True)
+class Lyric(Base):
+    __tablename__ = "lyric"
 
-#     class Meta:
-#         verbose_name = "风格"
-#         verbose_name_plural = "风格"
+    id = Column(ForeignKey("folder.id"), primary_key=True, comment="folder id")
+    path = Column(String(255))
+
+    # Remote URL where the image can be fetched
+    url = Column(Text, nullable=True)
+    size = Column(Integer, default=0, nullable=True, comment="文件大小/Byte")
+
+    created_at = Column(DateTime)
+    accessed_at = Column(DateTime)
+
+class Playlist(Base):
+    __tablename__ = "playlist"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50))
+    created_at = Column(DateTime)
+    update_at = Column(DateTime)
+
+class Folder(Base):
+    __tablename__ = "folder"
+
+    id = Column(Uuid, default=uuid.uuid4, primary_key=True)
+    parent_id = Column(Uuid, default=uuid.uuid4)
+    name = Column(String(255))
+
+    created_at = Column(DateTime)
+    accessed_at = Column(DateTime)
+    last_scan_at = Column(DateTime)
+
+    # 文件类型，例如：folder, music, image，lyric
+    path_type = Column(Enum(PathTypeEnum), default='folder')
+    # none, scanning, scanned, updated
+    state = Column(String(16), default='none')
